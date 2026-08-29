@@ -36,10 +36,9 @@ jobs:
           echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
 
       - name: Set up bootstrap JDK 8
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '8'
+        run: |
+          brew install --cask temurin@8
+          echo "JAVA_HOME=$(/usr/libexec/java_home -v 1.8)" >> "$GITHUB_ENV"
 
       - name: Verify build tools
         run: |
