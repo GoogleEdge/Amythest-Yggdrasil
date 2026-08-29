@@ -1,0 +1,78 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-14
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out Amethyst and submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Apply external-login overlay
+        run: rsync -a overlay/Amethyst-iOS/ amethyst-original/
+
+      - name: Check the installed Xcode toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Install build tools
+        run: |
+          brew update
+          brew install cmake make ldid wget
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+
+      - name: Set up bootstrap JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Verify build tools
+        run: |
+          cmake --version
+          gmake --version
+          java -version
+          "$JAVA_HOME/bin/javac" -version
+          ldid -h >/dev/null 2>&1 || true
+
+      - name: Build IPA with the Apple iPhoneOS SDK
+        env:
+          BUILD_JOBS: 3
+        run: |
+          cd amethyst-original
+          export SDKPATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+          export BOOTJDK="$JAVA_HOME/bin"
+          export RUNNER=0
+          export SLIMMED=0
+          export RELEASE=0
+          gmake -j"$BUILD_JOBS" dsym package PLATFORM=2
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: amethyst-unsigned-ios-ipa
+          path: amethyst-original/artifacts/org.angelauramc.amethyst-*-ios.ipa
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload dSYM
+        uses: actions/upload-artifact@v4
+        with:
+          name: amethyst-ios-dsym
+          path: amethyst-original/artifacts/*.dSYM
+          if-no-files-found: warn
+          compression-level: 0

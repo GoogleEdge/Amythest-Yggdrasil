@@ -1,0 +1,3 @@
+[submodule "amethyst-original"]
+	path = amethyst-original
+	url = https://github.com/AngelAuraMC/Amethyst-iOS.git
