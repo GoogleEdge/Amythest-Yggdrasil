@@ -4,6 +4,7 @@
 #import "authenticator/YggdrasilAuthenticator.h"
 #import "AccountListViewController.h"
 #import "AFNetworking.h"
+#import "AmethystMD3Theme.h"
 #import "LauncherPreferences.h"
 #import "UIImageView+AFNetworking.h"
 #import "ios_uikit_bridge.h"
@@ -50,7 +51,8 @@
         }
     }
 
-    [self.tableView setSeparatorStyle:UITableViewCellSeparatorStyleSingleLine];
+    [AmethystMD3Theme styleTableView:self.tableView];
+    self.tableView.rowHeight = 68;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
@@ -69,6 +71,8 @@
     if (indexPath.row == self.accountList.count) {
         cell.imageView.image = [UIImage imageNamed:@"IconAdd"];
         cell.textLabel.text = localize(@"login.option.add", nil);
+        [AmethystMD3Theme styleCell:cell inTableView:tableView];
+        cell.textLabel.textColor = AmethystMD3Theme.primaryColor;
         return cell;
     }
 
@@ -90,6 +94,7 @@
 
     cell.imageView.contentMode = UIViewContentModeCenter;
     [cell.imageView setImageWithURL:[NSURL URLWithString:[selected[@"profilePicURL"] stringByReplacingOccurrencesOfString:@"\\/" withString:@"/"]] placeholderImage:[UIImage imageNamed:@"DefaultAccount"]];
+    [AmethystMD3Theme styleCell:cell inTableView:tableView];
 
     return cell;
 }

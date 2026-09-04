@@ -1,6 +1,7 @@
 #import "authenticator/BaseAuthenticator.h"
 #import "AccountListViewController.h"
 #import "AFNetworking.h"
+#import "AmethystMD3Theme.h"
 #import "ALTServerConnection.h"
 #import "LauncherNavigationController.h"
 #import "LauncherMenuViewController.h"
@@ -55,9 +56,45 @@
     self.isInitialVc = YES;
     
     UIImageView *titleView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"AppLogo"]];
-    [titleView setContentMode:UIViewContentModeScaleAspectFit];
-    self.navigationItem.titleView = titleView;
-    [titleView sizeToFit];
+    titleView.contentMode = UIViewContentModeScaleAspectFit;
+
+    self.title = @"Amethyst";
+    self.navigationController.navigationBar.prefersLargeTitles = YES;
+    [AmethystMD3Theme styleTableView:self.tableView];
+    self.tableView.rowHeight = 68;
+    self.tableView.contentInset = UIEdgeInsetsMake(8, 0, 16, 0);
+
+    UIView *heroView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, CGRectGetWidth(self.view.bounds), 112)];
+    heroView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    UIView *heroCard = [[UIView alloc] initWithFrame:CGRectMake(16, 8, MAX(0, CGRectGetWidth(heroView.bounds) - 32), 96)];
+    heroCard.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    heroCard.backgroundColor = AmethystMD3Theme.primaryContainerColor;
+    heroCard.layer.cornerRadius = 24;
+    heroCard.layer.cornerCurve = kCACornerCurveContinuous;
+
+    titleView.frame = CGRectMake(16, 20, 56, 56);
+    titleView.backgroundColor = AmethystMD3Theme.surfaceColor;
+    titleView.layer.cornerRadius = 18;
+    titleView.layer.cornerCurve = kCACornerCurveContinuous;
+    titleView.clipsToBounds = YES;
+    [heroCard addSubview:titleView];
+
+    UILabel *heroTitle = [[UILabel alloc] initWithFrame:CGRectMake(88, 20, MAX(0, CGRectGetWidth(heroCard.bounds) - 104), 30)];
+    heroTitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    heroTitle.text = @"Minecraft Java";
+    heroTitle.textColor = AmethystMD3Theme.onPrimaryContainerColor;
+    heroTitle.font = [UIFont systemFontOfSize:22 weight:UIFontWeightBold];
+    [heroCard addSubview:heroTitle];
+
+    UILabel *heroSubtitle = [[UILabel alloc] initWithFrame:CGRectMake(88, 51, MAX(0, CGRectGetWidth(heroCard.bounds) - 104), 24)];
+    heroSubtitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    heroSubtitle.text = @"Material 3 · Yggdrasil";
+    heroSubtitle.textColor = AmethystMD3Theme.onPrimaryContainerColor;
+    heroSubtitle.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
+    [heroCard addSubview:heroSubtitle];
+
+    [heroView addSubview:heroCard];
+    self.tableView.tableHeaderView = heroView;
     
     self.options = @[
         [LauncherMenuCustomItem vcClass:LauncherNewsViewController.class],
@@ -169,6 +206,11 @@
         self.accountButton = [UIButton buttonWithType:UIButtonTypeCustom];
         [self.accountButton addTarget:self action:@selector(selectAccount:) forControlEvents:UIControlEventPrimaryActionTriggered];
         self.accountButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
+        self.accountButton.backgroundColor = AmethystMD3Theme.surfaceContainerHighColor;
+        self.accountButton.tintColor = AmethystMD3Theme.primaryColor;
+        self.accountButton.layer.cornerRadius = 18;
+        self.accountButton.layer.cornerCurve = kCACornerCurveContinuous;
+        self.accountButton.contentEdgeInsets = UIEdgeInsetsMake(6, 10, 6, 10);
 
         self.accountButton.titleEdgeInsets = UIEdgeInsetsMake(0, 4, 0, -4);
         self.accountButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
@@ -219,6 +261,8 @@
             performSelector:@selector(imageName)]];
         cell.imageView.image = [cell.imageView.image _imageWithSize:CGSizeMake(40, 40)];
     }
+    [AmethystMD3Theme styleCell:cell inTableView:tableView];
+    cell.textLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightSemibold];
     return cell;
 }
 

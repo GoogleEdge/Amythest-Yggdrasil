@@ -1,4 +1,5 @@
 #import "LauncherMenuViewController.h"
+#import "AmethystMD3Theme.h"
 #import "LauncherNavigationController.h"
 #import "LauncherPreferences.h"
 #import "LauncherPrefGameDirViewController.h"
@@ -43,6 +44,7 @@ typedef NS_ENUM(NSUInteger, LauncherProfilesTableSection) {
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    [AmethystMD3Theme styleTableView:self.tableView];
 
     UIMenu *createMenu = [UIMenu menuWithTitle:localize(@"profile.title.create", nil) image:nil identifier:nil
     options:UIMenuOptionsDisplayInline
@@ -213,6 +215,7 @@ typedef NS_ENUM(NSUInteger, LauncherProfilesTableSection) {
     }
 
     cell.textLabel.enabled = cell.detailTextLabel.enabled = cell.userInteractionEnabled;
+    [AmethystMD3Theme styleCell:cell inTableView:tableView];
     return cell;
 }
 
