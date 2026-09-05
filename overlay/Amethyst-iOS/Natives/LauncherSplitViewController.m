@@ -56,9 +56,8 @@
 - (void)viewWillTransitionToSize:(CGSize)size
        withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
     [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
-    [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinator>  _Nonnull context) {
-        [self updateAdaptiveLayoutForSize:size];
-    } completion:nil];
+    [self updateAdaptiveLayoutForSize:size];
+    (void)coordinator;
 }
 
 - (void)updateAdaptiveLayoutForSize:(CGSize)size {
