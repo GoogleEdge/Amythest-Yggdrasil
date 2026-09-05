@@ -264,7 +264,7 @@
 }
 
 - (void)restoreHighlightedSelection {
-    if (!self.tableView.isViewLoaded || self.options.count == 0) return;
+    if (!self.tableView || self.options.count == 0) return;
     NSInteger row = MIN(MAX(self.lastSelectedIndex, 0), (int)self.options.count - 1);
     [self.tableView selectRowAtIndexPath:[NSIndexPath indexPathForRow:row inSection:0]
         animated:NO scrollPosition:UITableViewScrollPositionNone];
