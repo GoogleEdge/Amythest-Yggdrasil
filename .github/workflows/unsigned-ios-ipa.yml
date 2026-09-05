@@ -3,8 +3,7 @@ name: Build unsigned iOS IPA
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -13,7 +12,6 @@ jobs:
   build-unsigned-ipa:
     runs-on: macos-14
     timeout-minutes: 180
-
     steps:
       - name: Check out Amethyst and submodules
         uses: actions/checkout@v4
@@ -21,57 +19,61 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Apply external-login overlay
+      - name: Apply launcher overlay
         run: rsync -a overlay/Amethyst-iOS/ amethyst-original/
 
-      - name: Check the installed Xcode toolchain
+      - name: Install build dependencies
         run: |
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-path
-
-      - name: Install build tools
-        run: |
-          brew update
           brew install cmake make ldid wget
-          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
-
-      - name: Set up bootstrap JDK 8
-        run: |
           brew install --cask temurin@8
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
           echo "JAVA_HOME=$(/usr/libexec/java_home -v 1.8)" >> "$GITHUB_ENV"
 
-      - name: Verify build tools
-        run: |
-          cmake --version
-          gmake --version
-          java -version
-          "$JAVA_HOME/bin/javac" -version
-          ldid -h >/dev/null 2>&1 || true
-
-      - name: Build IPA with the Apple iPhoneOS SDK
+      - name: Compile with Apple iPhoneOS SDK and package unsigned IPA
         env:
           BUILD_JOBS: 3
         run: |
+          set -euo pipefail
           cd amethyst-original
           export SDKPATH="$(xcrun --sdk iphoneos --show-sdk-path)"
           export BOOTJDK="$JAVA_HOME/bin"
-          export RUNNER=0
-          export SLIMMED=0
-          export RELEASE=0
-          gmake -j"$BUILD_JOBS" dsym package PLATFORM=2
+          export RUNNER=0 SLIMMED=0 RELEASE=0
+          gmake -j"$BUILD_JOBS" dsym PLATFORM=2 JOBS="$BUILD_JOBS"
 
-      - name: Upload unsigned IPA
+          # The upstream payload recipe adds ldid ad-hoc signatures. Remove
+          # those and bundled signatures from this newly compiled payload.
+          # Keep the sideload entitlements separately for the user's signer.
+          while IFS= read -r -d '' binary; do
+            case "$(file -b "$binary")" in
+              *Mach-O*)
+                if codesign -d "$binary" 2>/dev/null; then
+                  codesign --remove-signature "$binary"
+                fi
+                ;;
+            esac
+          done < <(find artifacts/Payload/AngelAuraAmethyst.app -type f -print0)
+          find artifacts/Payload/AngelAuraAmethyst.app -type f \( -name CodeResources -o -name embedded.mobileprovision \) -delete
+
+          cp entitlements.sideload.xml artifacts/entitlements.sideload.xml
+          cd artifacts
+          zip --symlinks -q -r Amethyst-Material3-unsigned.ipa Payload
+          shasum -a 256 Amethyst-Material3-unsigned.ipa > Amethyst-Material3-unsigned.ipa.sha256
+
+      - name: Upload unsigned IPA and signing entitlements
         uses: actions/upload-artifact@v4
         with:
-          name: amethyst-unsigned-ios-ipa
-          path: amethyst-original/artifacts/org.angelauramc.amethyst-*-ios.ipa
+          name: amethyst-material3-unsigned-ios-ipa
+          path: |
+            amethyst-original/artifacts/Amethyst-Material3-unsigned.ipa
+            amethyst-original/artifacts/Amethyst-Material3-unsigned.ipa.sha256
+            amethyst-original/artifacts/entitlements.sideload.xml
           if-no-files-found: error
           compression-level: 0
 
       - name: Upload dSYM
         uses: actions/upload-artifact@v4
         with:
-          name: amethyst-ios-dsym
+          name: amethyst-material3-ios-dsym
           path: amethyst-original/artifacts/*.dSYM
           if-no-files-found: warn
           compression-level: 0
