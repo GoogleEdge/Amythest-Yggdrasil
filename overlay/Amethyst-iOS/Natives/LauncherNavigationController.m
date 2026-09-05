@@ -172,17 +172,7 @@ static void *ProgressObserverContext = &ProgressObserverContext;
     }
 }
 
-- (void)viewDidLayoutSubviews
-{
-    [super viewDidLayoutSubviews];
-    CGFloat width = CGRectGetWidth(self.toolbar.bounds);
-    if (width <= 0.0 || !self.versionWidthConstraint) return;
 
-    CGFloat targetWidth = width >= 700.0
-        ? 320.0
-        : MIN(250.0, MAX(140.0, width * 0.58));
-    self.versionWidthConstraint.constant = targetWidth;
-}
 - (void)setViewControllers:(NSArray<UIViewController *> *)viewControllers animated:(BOOL)animated {
     [super setViewControllers:viewControllers animated:animated];
     if (!viewControllers.firstObject.toolbarItems && self.globalToolbarItems) {
@@ -556,14 +546,19 @@ static void *ProgressObserverContext = &ProgressObserverContext;
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     [sidebarViewController updateAccountInfo];
+
     if (self.globalToolbarItems) {
         if (!self.viewControllers.firstObject.toolbarItems) {
             self.viewControllers.firstObject.toolbarItems = self.globalToolbarItems;
         }
-        // resize textFieldContainer to fit, need dispatch queue or it freezes for some reason...
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.versionTextField.superview.frame = CGRectMake(0, 0, MIN(self.view.frame.size.width,self.view.frame.size.height)*0.8 - 40, 36);
-        });
+
+        CGFloat width = CGRectGetWidth(self.toolbar.bounds);
+        if (width > 0.0 && self.versionWidthConstraint) {
+            CGFloat targetWidth = width >= 700.0
+                ? 320.0
+                : MIN(250.0, MAX(140.0, width * 0.58));
+            self.versionWidthConstraint.constant = targetWidth;
+        }
     }
 }
 
