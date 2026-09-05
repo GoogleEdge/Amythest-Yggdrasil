@@ -37,6 +37,8 @@ static void *ProgressObserverContext = &ProgressObserverContext;
 @property(nonatomic) UIButton* buttonInstall;
 @property(nonatomic) UIBarButtonItem* buttonInstallItem;
 @property(nonatomic) int profileSelectedAt;
+@property(nonatomic) UIView *versionContainer;
+@property(nonatomic) NSLayoutConstraint *versionWidthConstraint;
 
 @end
 
@@ -49,92 +51,113 @@ static void *ProgressObserverContext = &ProgressObserverContext;
     if ([self respondsToSelector:@selector(setNeedsUpdateOfScreenEdgesDeferringSystemGestures)]) {
         [self setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
     }
+
+    [AmethystMD3Theme applyToViewController:self];
+
     UIToolbar *targetToolbar = self.toolbar;
-    BOOL hasLiquidGlass = _UISolariumEnabled && _UISolariumEnabled();
-    
-    if(hasLiquidGlass) {
-        self.versionTextField = [[PickTextField alloc] initWithFrame:CGRectMake(0, 0, MIN(self.view.frame.size.width,self.view.frame.size.height)*0.8 - 40, 36)];
-        self.progressViewMain = [[UIProgressView alloc] initWithFrame:CGRectMake(20, -5, self.versionTextField.frame.size.width-40, 0)];
-    } else {
-        self.versionTextField = [[PickTextField alloc] initWithFrame:CGRectMake(4, 4, self.toolbar.frame.size.width * 0.8 - 8, self.toolbar.frame.size.height - 8)];
-        self.progressViewMain = [[UIProgressView alloc] initWithFrame:CGRectMake(0, 0, targetToolbar.frame.size.width, 0)];
+    targetToolbar.translucent = NO;
+    if (@available(iOS 13.0, *)) {
+        UIToolbarAppearance *appearance = [UIToolbarAppearance new];
+        [appearance configureWithOpaqueBackground];
+        appearance.backgroundColor = AmethystMD3Theme.surfaceContainerLowColor;
+        appearance.shadowColor = UIColor.clearColor;
+        targetToolbar.standardAppearance = appearance;
+        if (@available(iOS 15.0, *)) {
+            targetToolbar.scrollEdgeAppearance = appearance;
+        }
     }
-    [self.versionTextField addTarget:self.versionTextField action:@selector(resignFirstResponder) forControlEvents:UIControlEventEditingDidEndOnExit];
-    self.versionTextField.autoresizingMask = AUTORESIZE_MASKS;
+    targetToolbar.tintColor = AmethystMD3Theme.primaryColor;
+
+    self.versionTextField = [[PickTextField alloc] initWithFrame:CGRectZero];
+    self.versionTextField.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.versionTextField addTarget:self.versionTextField
+        action:@selector(resignFirstResponder) forControlEvents:UIControlEventEditingDidEndOnExit];
     self.versionTextField.placeholder = @"Specify version...";
-    self.versionTextField.leftView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 40, 40)];
-    self.versionTextField.rightView = [[UIImageView alloc] initWithImage:[[UIImage imageNamed:@"SpinnerArrow"] _imageWithSize:CGSizeMake(30, 30)]];
-    self.versionTextField.rightView.frame = CGRectMake(0, 0, self.versionTextField.frame.size.height * 0.9, self.versionTextField.frame.size.height * 0.9);
+    self.versionTextField.leftView = [[UIImageView alloc] initWithImage:
+        [[UIImage imageNamed:@"DefaultProfile"] _imageWithSize:CGSizeMake(28.0, 28.0)]];
+    self.versionTextField.rightView = [[UIImageView alloc] initWithImage:
+        [[UIImage imageNamed:@"SpinnerArrow"] _imageWithSize:CGSizeMake(24.0, 24.0)]];
     self.versionTextField.leftViewMode = UITextFieldViewModeAlways;
     self.versionTextField.rightViewMode = UITextFieldViewModeAlways;
     self.versionTextField.textAlignment = NSTextAlignmentCenter;
-    self.versionTextField.font = [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
+    self.versionTextField.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+    self.versionTextField.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
     [AmethystMD3Theme styleTextField:self.versionTextField];
 
     self.versionPickerView = [[PLPickerView alloc] init];
     self.versionPickerView.delegate = self;
     self.versionPickerView.dataSource = self;
-
     [self reloadProfileList];
-
     self.versionTextField.inputView = self.versionPickerView;
     [self.versionTextField setupDoneButtonWithTarget:self action:@selector(versionClosePicker)];
 
-    UIView *textFieldContainer = nil;
-    if(hasLiquidGlass) {
-        textFieldContainer = [[UIView alloc] initWithFrame:self.versionTextField.frame];
-        [textFieldContainer addSubview:self.progressViewMain];
-        self.buttonInstallItem = [[UIBarButtonItem alloc] initWithTitle:localize(@"Play", nil)
-                                                                  style:UIBarButtonItemStylePlain
-                                                                 target:self
-                                                                 action:@selector(performInstallOrShowDetails:)];
-        self.buttonInstallItem.enabled = NO;
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.buttonInstallItem.buttonGlassView.backgroundColor = AmethystMD3Theme.primaryContainerColor;
-        });
-        [textFieldContainer addSubview:self.versionTextField];
-        UIBarButtonItem *textFieldItem = [[UIBarButtonItem alloc] initWithCustomView:textFieldContainer];
-        self.globalToolbarItems = @[
-            textFieldItem,
-            self.buttonInstallItem,
-        ];
-    } else {
-        self.buttonInstall = [UIButton buttonWithType:UIButtonTypeSystem];
-        setButtonPointerInteraction(self.buttonInstall);
-        [self.buttonInstall setTitle:localize(@"Play", nil) forState:UIControlStateNormal];
-        self.buttonInstall.autoresizingMask = AUTORESIZE_MASKS;
-        self.buttonInstall.frame = CGRectMake(self.toolbar.frame.size.width * 0.8, 4, self.toolbar.frame.size.width * 0.2, self.toolbar.frame.size.height - 8);
-        [AmethystMD3Theme styleFilledButton:self.buttonInstall];
-        self.buttonInstall.enabled = NO;
-        [self.buttonInstall addTarget:self action:@selector(performInstallOrShowDetails:) forControlEvents:UIControlEventPrimaryActionTriggered];
-        [targetToolbar addSubview:self.progressViewMain];
-        [targetToolbar addSubview:self.versionTextField];
-        [targetToolbar addSubview:self.buttonInstall];
-    }
-    
-    self.progressViewMain.autoresizingMask = AUTORESIZE_MASKS;
-    self.progressViewMain.hidden = YES;
-    self.progressText = [[UILabel alloc] initWithFrame:self.versionTextField.frame];
+    self.versionContainer = [UIView new];
+    self.versionContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.versionContainer addSubview:self.versionTextField];
+
+    self.progressViewMain = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
+    self.progressViewMain.translatesAutoresizingMaskIntoConstraints = NO;
+    self.progressViewMain.progressTintColor = AmethystMD3Theme.primaryColor;
+    self.progressViewMain.trackTintColor = AmethystMD3Theme.surfaceContainerHighColor;
+    [self.versionContainer addSubview:self.progressViewMain];
+
+    self.progressText = [UILabel new];
+    self.progressText.translatesAutoresizingMaskIntoConstraints = NO;
     self.progressText.adjustsFontSizeToFitWidth = YES;
-    self.progressText.autoresizingMask = AUTORESIZE_MASKS;
-    self.progressText.font = [self.progressText.font fontWithSize:16];
+    self.progressText.minimumScaleFactor = 0.7;
+    self.progressText.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
     self.progressText.textAlignment = NSTextAlignmentCenter;
+    self.progressText.textColor = AmethystMD3Theme.onSurfaceColor;
     self.progressText.userInteractionEnabled = NO;
-    
-    if(hasLiquidGlass) {
-        [textFieldContainer addSubview:self.progressText];
-    } else {
-        [targetToolbar addSubview:self.progressText];
-    }
+    [self.versionContainer addSubview:self.progressText];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.versionTextField.leadingAnchor constraintEqualToAnchor:self.versionContainer.leadingAnchor],
+        [self.versionTextField.trailingAnchor constraintEqualToAnchor:self.versionContainer.trailingAnchor],
+        [self.versionTextField.topAnchor constraintEqualToAnchor:self.versionContainer.topAnchor],
+        [self.versionTextField.bottomAnchor constraintEqualToAnchor:self.versionContainer.bottomAnchor],
+        [self.versionContainer.heightAnchor constraintEqualToConstant:46.0],
+        [self.progressViewMain.leadingAnchor constraintEqualToAnchor:self.versionContainer.leadingAnchor constant:14.0],
+        [self.progressViewMain.trailingAnchor constraintEqualToAnchor:self.versionContainer.trailingAnchor constant:-14.0],
+        [self.progressViewMain.bottomAnchor constraintEqualToAnchor:self.versionContainer.bottomAnchor],
+        [self.progressViewMain.heightAnchor constraintEqualToConstant:2.0],
+        [self.progressText.leadingAnchor constraintEqualToAnchor:self.versionContainer.leadingAnchor constant:8.0],
+        [self.progressText.trailingAnchor constraintEqualToAnchor:self.versionContainer.trailingAnchor constant:-8.0],
+        [self.progressText.centerYAnchor constraintEqualToAnchor:self.versionContainer.centerYAnchor]
+    ]];
+
+    self.versionWidthConstraint = [self.versionContainer.widthAnchor constraintEqualToConstant:190.0];
+    self.versionWidthConstraint.active = YES;
+
+    self.buttonInstall = [UIButton buttonWithType:UIButtonTypeSystem];
+    self.buttonInstall.translatesAutoresizingMaskIntoConstraints = NO;
+    setButtonPointerInteraction(self.buttonInstall);
+    [self.buttonInstall setTitle:localize(@"Play", nil) forState:UIControlStateNormal];
+    [self.buttonInstall setImage:[UIImage systemImageNamed:@"play.fill"] forState:UIControlStateNormal];
+    self.buttonInstall.imageEdgeInsets = UIEdgeInsetsMake(0.0, -5.0, 0.0, 5.0);
+    [AmethystMD3Theme styleFilledButton:self.buttonInstall];
+    self.buttonInstall.enabled = NO;
+    [self.buttonInstall addTarget:self action:@selector(performInstallOrShowDetails:)
+        forControlEvents:UIControlEventPrimaryActionTriggered];
+    [self.buttonInstall.widthAnchor constraintGreaterThanOrEqualToConstant:78.0].active = YES;
+    [self.buttonInstall.heightAnchor constraintEqualToConstant:46.0].active = YES;
+
+    UIBarButtonItem *versionItem = [[UIBarButtonItem alloc] initWithCustomView:self.versionContainer];
+    UIBarButtonItem *flexibleSpace = [[UIBarButtonItem alloc]
+        initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+    UIBarButtonItem *playItem = [[UIBarButtonItem alloc] initWithCustomView:self.buttonInstall];
+    self.globalToolbarItems = @[versionItem, flexibleSpace, playItem];
+    self.toolbarItems = self.globalToolbarItems;
+
+    self.progressViewMain.hidden = YES;
 
     [self fetchRemoteVersionList];
     [NSNotificationCenter.defaultCenter addObserver:self
-        selector:@selector(receiveNotification:) 
+        selector:@selector(receiveNotification:)
         name:@"InstallModpack"
         object:nil];
 
     if ([BaseAuthenticator.current isKindOfClass:MicrosoftAuthenticator.class]) {
-        // Perform token refreshment on startup
         [self setInteractionEnabled:NO forDownloading:NO];
         id callback = ^(id status, BOOL success) {
             status = [status description];
@@ -149,6 +172,17 @@ static void *ProgressObserverContext = &ProgressObserverContext;
     }
 }
 
+- (void)viewDidLayoutSubviews
+{
+    [super viewDidLayoutSubviews];
+    CGFloat width = CGRectGetWidth(self.toolbar.bounds);
+    if (width <= 0.0 || !self.versionWidthConstraint) return;
+
+    CGFloat targetWidth = width >= 700.0
+        ? 320.0
+        : MIN(250.0, MAX(140.0, width * 0.58));
+    self.versionWidthConstraint.constant = targetWidth;
+}
 - (void)setViewControllers:(NSArray<UIViewController *> *)viewControllers animated:(BOOL)animated {
     [super setViewControllers:viewControllers animated:animated];
     if (!viewControllers.firstObject.toolbarItems && self.globalToolbarItems) {

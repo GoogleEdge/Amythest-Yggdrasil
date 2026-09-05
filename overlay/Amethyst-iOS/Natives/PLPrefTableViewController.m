@@ -30,6 +30,7 @@
 {
     [super viewDidLoad];
 
+    [AmethystMD3Theme applyToViewController:self];
     self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
     [AmethystMD3Theme styleTableView:self.tableView];
     if (self.prefSections) {
@@ -53,6 +54,7 @@
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
 
+    [AmethystMD3Theme applyToViewController:self];
     // Put navigation buttons back in place if we're first of the navigation controller
     if (self.hasDetail && self.navigationController) {
         self.navigationItem.rightBarButtonItems = @[[sidebarViewController drawAccountButton], [self drawHelpButton]];
@@ -180,21 +182,33 @@
     self.typeTextField = ^void(UITableViewCell *cell, NSString *section, NSString *key, NSDictionary *item) {
         Class cls = item[@"customClass"];
         if (!cls) cls = UITextField.class;
-        UITextField *view = [[cls alloc] initWithFrame:CGRectMake(0, 0, cell.bounds.size.width / 2.1, cell.bounds.size.height)];
+
+        UIView *container = [UIView new];
+        container.translatesAutoresizingMaskIntoConstraints = NO;
+        [container.widthAnchor constraintEqualToConstant:180.0].active = YES;
+        [container.heightAnchor constraintEqualToConstant:38.0].active = YES;
+
+        UITextField *view = [[cls alloc] initWithFrame:CGRectZero];
+        view.translatesAutoresizingMaskIntoConstraints = NO;
         [view addTarget:view action:@selector(resignFirstResponder) forControlEvents:UIControlEventEditingDidEndOnExit];
         view.adjustsFontSizeToFitWidth = YES;
         view.autocorrectionType = UITextAutocorrectionTypeNo;
         view.autocapitalizationType = UITextAutocapitalizationTypeNone;
-        view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleLeftMargin;
-        //view.contentVerticalAlignment = UIControlContentVerticalAlignmentTop;
         view.delegate = weakSelf;
-        //view.nonEditingLinebreakMode = NSLineBreakByCharWrapping;
         view.returnKeyType = UIReturnKeyDone;
         view.textAlignment = NSTextAlignmentRight;
         view.placeholder = localize((item[@"placeholder"] ? item[@"placeholder"] :
             [NSString stringWithFormat:@"preference.placeholder.%@", key]), nil);
         view.text = weakSelf.getPreference(section, key);
-        cell.accessoryView = view;
+        [AmethystMD3Theme styleTextField:view];
+        [container addSubview:view];
+        [NSLayoutConstraint activateConstraints:@[
+            [view.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
+            [view.trailingAnchor constraintEqualToAnchor:container.trailingAnchor],
+            [view.topAnchor constraintEqualToAnchor:container.topAnchor],
+            [view.bottomAnchor constraintEqualToAnchor:container.bottomAnchor]
+        ]];
+        cell.accessoryView = container;
     };
 
     self.typePickField = ^void(UITableViewCell *cell, NSString *section, NSString *key, NSDictionary *item) {
@@ -204,14 +218,26 @@
     };
 
     self.typeSlider = ^void(UITableViewCell *cell, NSString *section, NSString *key, NSDictionary *item) {
-        DBNumberedSlider *view = [[DBNumberedSlider alloc] initWithFrame:CGRectMake(0, 0, cell.bounds.size.width / 2.1, cell.bounds.size.height)];
+        UIView *container = [UIView new];
+        container.translatesAutoresizingMaskIntoConstraints = NO;
+        [container.widthAnchor constraintEqualToConstant:180.0].active = YES;
+        [container.heightAnchor constraintEqualToConstant:32.0].active = YES;
+
+        DBNumberedSlider *view = [[DBNumberedSlider alloc] initWithFrame:CGRectZero];
+        view.translatesAutoresizingMaskIntoConstraints = NO;
         [view addTarget:weakSelf action:@selector(sliderMoved:) forControlEvents:UIControlEventValueChanged];
-        view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleLeftMargin;
         view.minimumValue = [item[@"min"] intValue];
         view.maximumValue = [item[@"max"] intValue];
         view.continuous = YES;
         view.value = [weakSelf.getPreference(section, key) intValue];
-        cell.accessoryView = view;
+        [container addSubview:view];
+        [NSLayoutConstraint activateConstraints:@[
+            [view.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
+            [view.trailingAnchor constraintEqualToAnchor:container.trailingAnchor],
+            [view.topAnchor constraintEqualToAnchor:container.topAnchor],
+            [view.bottomAnchor constraintEqualToAnchor:container.bottomAnchor]
+        ]];
+        cell.accessoryView = container;
     };
 
     self.typeSwitch = ^void(UITableViewCell *cell, NSString *section, NSString *key, NSDictionary *item) {

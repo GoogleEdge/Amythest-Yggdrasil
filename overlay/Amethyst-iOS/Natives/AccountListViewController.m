@@ -32,6 +32,10 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
+    [AmethystMD3Theme applyToViewController:self];
+    self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
+    self.tableView.cellLayoutMarginsFollowReadableWidth = YES;
+
     if (self.accountList == nil) {
         self.accountList = [NSMutableArray array];
     } else {
@@ -52,7 +56,8 @@
     }
 
     [AmethystMD3Theme styleTableView:self.tableView];
-    self.tableView.rowHeight = 68;
+    self.tableView.contentInset = UIEdgeInsetsMake(8.0, 0.0, 20.0, 0.0);
+    self.tableView.scrollIndicatorInsets = UIEdgeInsetsMake(8.0, 0.0, 20.0, 0.0);
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
